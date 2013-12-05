@@ -107,21 +107,59 @@ final class Long private (
   def ==(y: Long): Boolean = x.l == y.l && x.m == y.m && x.h == y.h
   def !=(y: Long): Boolean = x.l != y.l || x.m != y.m || x.h != y.h
 
-  def +(y: Long) = {
+  def < (y: Long): Boolean = !(x >= y)
+  def <=(y: Long): Boolean = !(x >  y)
+  def > (y: Long): Boolean = {
+    val signx = x.sign
+    val signy = y.sign
+    if (signx == 0)
+      signy != 0 ||
+      x.h >  y.h ||
+      x.h == y.h && x.m >  y.m ||
+      x.h == y.h && x.m == y.m || x.l >  y.l
+    else !(
+      signy == 0 ||
+      x.h <  y.h ||
+      x.h == y.h && x.m <  y.m ||
+      x.h == y.h && x.m == y.m || x.l <= y.l
+    )
+  }
+
+  /**
+   * greater or equal.
+   * note: gwt implements this individually
+   */
+  def >=(y: Long) : Boolean = x == y || x > y
+
+  def |(y: Long): Long = Long(x.l | y.l, x.m | y.m, x.h | y.h)
+  def &(y: Long): Long = Long(x.l & y.l, x.m & y.m, x.h & y.h)
+  def ^(y: Long): Long = Long(x.l ^ y.l, x.m ^ y.m, x.h ^ y.h)
+
+  def +(y: Long): Long = {
     val sum0 = x.l + y.l
     val sum1 = x.m + y.m + (sum0 >> BITS)
     val sum2 = x.h + y.h + (sum1 >> BITS)
     masked(sum0, sum1, sum2)
   }
 
+  /**
+   * subtraction
+   * note: gwt implements this individually
+   */
+  def -(y: Long): Long = x + (-y)
 
-  def &(y: Long): Long = Long(x.l & y.l, x.m & y.m, x.h & y.h)
+  def *(y: Long): Long = ???
+  def /(y: Long): Long = ???
+  def %(y: Long): Long = ???
 
-  
+  //override def getClass(): Class[Long] = null
 
+  // helpers //
+
+  /** sign *bit* of long (0 for positive, 1 for negative) */
+  private def sign = h >> (BITS2 - 1)
 
 }
-
 
 object Long {
 
