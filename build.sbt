@@ -3,7 +3,7 @@ scalaJSSettings
 
 name := "Example"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
 // Specify additional .js file to be passed to package-js and optimize-js
 unmanagedSources in (Compile, ScalaJSKeys.packageJS) +=
