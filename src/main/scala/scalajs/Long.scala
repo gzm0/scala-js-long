@@ -352,10 +352,15 @@ final class Long private (
 
 object Long {
 
+  /** number of relevant bits in each Long.l and Long.m */
   private val BITS:    Int = 22
+  /** number of relevant bits in Long.l and Long.m together */
   private val BITS01:  Int = 2 * BITS
+  /** number of relevant bits in Long.h */
   private val BITS2:   Int = 64 - BITS01
+  /** bitmask for Long.l and Long.m */
   private val MASK:    Int = (1 << BITS) - 1
+  /** bitmask for Long.h */
   private val MASK_2:  Int = (1 << BITS2) - 1
 
   private val SIGN_BIT:       Int    = BITS2 - 1
@@ -368,7 +373,6 @@ object Long {
   private val TWO_PWR_44_DBL: Double = TWO_PWR_22_DBL * TWO_PWR_22_DBL
   private val TWO_PWR_63_DBL: Double = TWO_PWR_32_DBL * TWO_PWR_31_DBL
 
-  /** creates a zero long */
   protected def zero = Long(0,0,0)
   protected def one  = Long(1,0,0)
 
@@ -379,9 +383,13 @@ object Long {
     new Long(a0, a1, a2)
   }
 
+  /**
+   * creates a new long but masks bits as follows:
+   * l & MASK, m & MASK, h & MASK_2
+   */
   protected def masked(l: Int, m: Int, h: Int) =
     Long(l & MASK, m & MASK, h & MASK_2)
-  protected def apply(l: Int, m: Int, h: Int) = new Long(l, m, h)
+  private def apply(l: Int, m: Int, h: Int) = new Long(l, m, h)
 
   /**
    * performs division in "normal cases"
@@ -428,6 +436,5 @@ object Long {
 
   /** The largest value representable as a Long. */
   final val MaxValue = Long(MASK, MASK, MASK_2 >> 1)
-
   
 }
