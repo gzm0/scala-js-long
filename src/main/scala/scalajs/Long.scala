@@ -244,7 +244,7 @@ final class Long private (
     else {
       val tenPowZeros = 9
       val tenPow = 1000000000
-      val tenPowL = Long(tenPow)
+      val tenPowL = fromInt(tenPow)
 
       @tailrec
       def toString0(v: Long, acc: String): String =
@@ -372,7 +372,7 @@ object Long {
   protected def zero = Long(0,0,0)
   protected def one  = Long(1,0,0)
 
-  protected def apply(value: Int) = {
+  def fromInt(value: Int) = {
     val a0 = value & MASK
     val a1 = (value >> BITS) & MASK
     val a2 = if (value < 0) MASK_2 else 0
