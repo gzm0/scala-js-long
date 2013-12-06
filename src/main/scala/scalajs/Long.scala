@@ -19,6 +19,8 @@ final class Long private (
 
   import Long._
 
+  def toInt: Int = l | (m << BITS)
+
   def unary_~ : Long = masked(~x.l, ~x.m, ~x.h)
   def unary_+ : Long = x
   def unary_- : Long = {
@@ -240,8 +242,25 @@ final class Long private (
     else if (isMinValue) "-9223372036854775808"
     else if (isNegative) "-" + (-x).toString
     else {
-      ???
-      // TODO need division
+      val tenPowZeros = 9
+      val tenPow = 1000000000
+      val tenPowL = Long(tenPow)
+
+      @tailrec
+      def toString0(v: Long, acc: String): String =
+        if (v.isZero) acc
+        else {
+          val (quot, rem) = v.divMod(tenPowL)
+          
+          val digits = rem.toInt.toString
+          val zeroPrefix = if (!quot.isZero) {
+            "0" * (tenPowZeros - digits.length)
+          } else ""
+
+          toString0(quot, zeroPrefix + digits + acc)
+        }
+
+      toString0(x, "")
     }
 
   // helpers //
