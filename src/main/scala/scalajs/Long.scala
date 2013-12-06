@@ -1,5 +1,7 @@
 package scalajs
 
+import scala.annotation.tailrec
+
 /**
  * emulate a Java-Long using three integers.
  * taken from gwt LongLib:
@@ -250,6 +252,14 @@ final class Long private (
   private def isZero = l == 0 && m == 0 && h == 0
   private def isMinValue = x == MinValue
   private def isNegative = sign != 0
+  private def abs = if (sign == 1) -x else x
+  private def numberOfLeadingZeros =
+    if (h == 0 && m == 0)
+      Integer.numberOfLeadingZeros(l) - (32 - BITS) + (64 - BITS)
+    else if (h == 0)
+      Integer.numberOfLeadingZeros(l) - (32 - BITS) + (64 - BITS01)
+    else
+      Integer.numberOfLeadingZeros(l) - (32 - BITS2)
 
   /** return Some(log_2(x)) if power of 2 or None othwerise */
   private def powerOfTwo = 
@@ -262,6 +272,14 @@ final class Long private (
     else
       None
 
+  private def setBit(bit: Int) =
+    if (bit < BITS)
+      Long(l | (0x1 << bit), m, h)
+    else if (bit < BITS01)
+      Long(l, m | (0x1 << (bit - BITS)), h)
+    else
+      Long(l, m, h | (0x1 << (bit - BITS01)))
+
   private def divMod(y: Long): (Long, Long) = {
     if (y.isZero) throw new ArithmeticException("/ by zero")
     else if (x.isZero) (zero, zero)
@@ -269,8 +287,46 @@ final class Long private (
       // MinValue / MinValue == 1, rem = 0
       // otherwise == 0, rem x
       if (x.isMinValue) (one, zero)
-      else (x, zero)
-    } else ???
+      else (zero, x)
+    } else {
+      val xNegative = x.isNegative
+      val yNegative = y.isNegative
+      
+      val xMinValue = x.isMinValue
+
+      val absX = x.abs  // this may be useless if x.isMinValue
+      val absY = y.abs
+      
+      y.powerOfTwo match {
+        case Some(pow) if xMinValue =>
+          val z = x >> pow
+          (if (yNegative) -z else z, zero)
+        case Some(pow) =>
+          // x is not min value, so we can use absX
+          val absZ = absX >> pow
+          val z = if (xNegative ^ yNegative) -absZ else absZ
+          val remAbs = absX.maskRight(pow)
+          val rem = if (xNegative) -remAbs else remAbs
+          (z, rem)
+        case None if xMinValue =>
+          divModHelper(MaxValue, absY, xNegative, yNegative, xMinValue = true)
+        // here we know that x is not min value, so absX makes sense to use
+        case None if absX < absY =>
+          (zero, x)
+        case None =>
+          divModHelper(absX, absY, xNegative, yNegative, xMinValue = false)
+      }
+
+    }
+  }
+
+  private def maskRight(bits: Int) = {
+    if (bits <= BITS)
+      Long(l & ((1 << bits) - 1), 0, 0)
+    else if (bits <= BITS01)
+      Long(l, m & ((1 << (bits - BITS)) - 1), 0)
+    else
+      Long(l, m, h & ((1 << (bits - BITS01)) - 1))
   }
 
 }
@@ -307,6 +363,44 @@ object Long {
   protected def masked(l: Int, m: Int, h: Int) =
     Long(l & MASK, m & MASK, h & MASK_2)
   protected def apply(l: Int, m: Int, h: Int) = new Long(l, m, h)
+
+  /**
+   * performs division in "normal cases"
+   * @param x absolute value of the numerator
+   * @param y absolute value of the denominator
+   * @param xNegative whether numerator was negative
+   * @param yNegative whether denominator was negative
+   * @param xMinValue whether numerator was Long.minValue
+   */
+  private def divModHelper(x: Long, y: Long,
+                           xNegative: Boolean, yNegative: Boolean,
+                           xMinValue: Boolean) = {
+
+    @tailrec
+    def divide0(shift: Int, yShift: Long,
+                curX: Long, quot: Long): (Long,Long) =
+      if (shift < 0 || curX.isZero) (quot, curX) else {
+        val newX = curX - yShift
+        if (!newX.isNegative)
+          divide0(shift-1, yShift >> 1, newX, quot.setBit(shift))
+        else
+          divide0(shift-1, yShift >> 1, curX, quot)
+      }
+
+    val shift = y.numberOfLeadingZeros - x.numberOfLeadingZeros
+    val yShift = y << shift
+
+    val (absQuot, absRem) = divide0(shift, yShift, x, zero)
+    
+    val quot = if (xNegative ^ yNegative) -absQuot else absQuot
+    val rem  =
+      if (xNegative && xMinValue) -absRem - one
+      else if (xNegative)         -absRem
+      else                         absRem 
+
+    (quot, rem)
+    
+  }
 
   // Public Long API
 
