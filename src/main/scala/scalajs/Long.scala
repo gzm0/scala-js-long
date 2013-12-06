@@ -229,8 +229,8 @@ final class Long private (
     masked(c0, c1 + c0 >> BITS, c2 + c1 >> BITS)
   }
 
-  def /(y: Long): Long = ???
-  def %(y: Long): Long = ???
+  def /(y: Long): Long = (x divMod y)._1
+  def %(y: Long): Long = (x divMod y)._2
 
   //override def getClass(): Class[Long] = null
 
